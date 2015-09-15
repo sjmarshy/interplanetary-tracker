@@ -4,8 +4,12 @@
   "description": "Keep a registry of projects stored in [ipfs](ipfs.io) on your local machine, and publish a list of your projects and their history to ipns.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build":"babel -o bin/ipfsprojects src/index.js"
   },
   "author": "Sam Marshall",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^2.8.1"
+  }
 }
