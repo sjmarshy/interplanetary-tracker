@@ -4,43 +4,43 @@
 
 "use strict";
 
+let {exec} = require("shelljs");
 const program = require("commander");
 const p = require("../package.json");
 const {mkdirSync, writeFileSync, readFileSync} = require("fs");
 const {join} = require("path");
-const ipfsApi = require("ipfs-api");
 
 const storeDir = join(process.env.HOME, ".iptr");
 const itemList = join(storeDir, "items.json");
-
-const ipfs = ipfsApi("localhost", "5001");
 
 const getitemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
 
 const itemFilter = (pfile, item) => pfile.filter((proj) => proj.name === item);
 
-const itemExists = (pfile, item) => itemFilter(pfile, item) > 0;
+const itemExists = (pfile, item) => itemFilter(pfile, item).length > 0;
 
 const getitem = (pfile, item) => itemExists(pfile, item) ?
 	itemFilter(pfile, item)[0] : false;
 
-const versionExists = (item, version) => item.versions
-  .filter((k) => k === version).length > 0;
+const versionExists = (item, version) => item.hasOwnProperty("versions") ?
+  Object.keys(item.versions).filter((k) => k === version).length > 0 :
+  false;
 
 const saveitemFile = (pfile) => writeFileSync(itemList, JSON.stringify(pfile));
 
 const ipfsAdd = (path) => {
-  return new Promise((resolve, reject) => {
 
-    ipfs.add(path, (err, res) => {
+    console.log("adding " + path);
 
-      if (err) {
-        return reject(err);
-      }
+    let res = exec("ipfs add -r " + path);
 
-      return resolve(res[0].Hash);
-    });
-  });
+    if (res.code === 0) {
+
+      let lines = res.output.split(/\r?\n/);
+      let lastLine = lines[lines.length - 2];
+
+      return lastLine.split(" ")[1];
+    }
 };
 
 const init = () => {
@@ -62,7 +62,7 @@ const additem = (itemName) => {
 
 	let exists = itemExists(pfile, itemName);
 
-	if (exists) {
+	if (!exists) {
 
 		pfile.push({
 			name: itemName,
@@ -91,21 +91,23 @@ const addVersion = (itemName, pathName, version) => {
 
     console.log("version " + version +
         "is already published at " +
-        item[version]);
+        item.versions[version]);
     process.exit(1);
 
   } else {
 
-    ipfsAdd(pathName).then((hash) => {
+    console.log("creating version");
+    let hash = ipfsAdd(pathName);
 
-      item[version] = hash;
-      console.log(hash);
-      saveitemFile(pfile);
-    }).catch((err) => {
+    if (!item.hasOwnProperty("versions")) {
 
-      console.log(err);
-      process.exit(1);
-    });
+      item.versions = {};
+    }
+
+    console.log("object hash: " + hash);
+    item.versions[version] = hash;
+    saveitemFile(pfile);
+
   }
 };
 
