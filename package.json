@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build":"babel -o bin/iptr src/index.js"
+    "build": "babel -o bin/iptr src/index.js"
   },
   "author": "Sam Marshall",
   "license": "MIT",
   "dependencies": {
-    "commander": "^2.8.1"
+    "commander": "^2.8.1",
+    "ipfs-api": "^2.3.2"
   }
 }

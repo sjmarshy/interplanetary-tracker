@@ -8,9 +8,12 @@ const program = require("commander");
 const p = require("../package.json");
 const {mkdirSync, writeFileSync, readFileSync} = require("fs");
 const {join} = require("path");
+const ipfsApi = require("ipfs-api");
 
 const storeDir = join(process.env.HOME, ".iptr");
 const itemList = join(storeDir, "items.json");
+
+const ipfs = ipfsApi("localhost", "5001");
 
 const getitemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
 
@@ -23,6 +26,22 @@ const getitem = (pfile, item) => itemExists(pfile, item) ?
 
 const versionExists = (item, version) => item.versions
   .filter((k) => k === version).length > 0;
+
+const saveitemFile = (pfile) => writeFileSync(itemList, JSON.stringify(pfile));
+
+const ipfsAdd = (path) => {
+  return new Promise((resolve, reject) => {
+
+    ipfs.add(path, (err, res) => {
+
+      if (err) {
+        return reject(err);
+      }
+
+      return resolve(res[0].Hash);
+    });
+  });
+};
 
 const init = () => {
 
@@ -77,18 +96,17 @@ const addVersion = (itemName, pathName, version) => {
 
   } else {
 
-    let hash = ipfsAdd(pathName);
+    ipfsAdd(pathName).then((hash) => {
 
-    item[version] = hash;
+      item[version] = hash;
+      console.log(hash);
+      saveitemFile(pfile);
+    }).catch((err) => {
 
-    console.log(hash);
-
-    saveitemFile(pfile);
+      console.log(err);
+      process.exit(1);
+    });
   }
-
-  // ipfs add pathname
-  // grab the hash and store it in the items version object,
-  // with the version as the key
 };
 
 program.version(p.version);
