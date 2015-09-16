@@ -6,12 +6,13 @@
 
 const program = require("commander");
 const p = require("../package.json");
-const {writeFileSync, readFileSync} = require("fs");
+const {mkdirSync, writeFileSync, readFileSync} = require("fs");
 const {join} = require("path");
 
-const itemPath = join(process.env.HOME, ".ipfsprojetcs");
+const storeDir = join(process.env.HOME, ".iptr");
+const itemList = join(storeDir, "items.json");
 
-const getitemFile = () => JSON.parse(readFileSync(itemPath, "utf8"));
+const getitemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
 
 const itemFilter = (pfile, item) => pfile.filter((proj) => proj.name === item);
 
@@ -26,7 +27,8 @@ const versionExists = (item, version) => item.versions
 const init = () => {
 
 	try {
-		writeFileSync(itemPath, "[]");
+    mkdirSync(storeDir);
+		writeFileSync(itemList, "[]");
 		return true;
 	} catch (e) {
 
@@ -48,7 +50,7 @@ const additem = (itemName) => {
 			versions: {}
 		});
 
-		writeFileSync(itemPath, JSON.stringify(pfile), "utf8");
+		writeFileSync(itemList, JSON.stringify(pfile), "utf8");
 		console.log(itemName + " added to list of projcets");
 	} else {
 
@@ -67,10 +69,12 @@ const addVersion = (itemName, pathName, version) => {
   let item = getitem(pfile, itemName);
 
   if (versionExists(item, version)) {
+
     console.log("version " + version +
         "is already published at " +
         item[version]);
     process.exit(1);
+
   } else {
 
     let hash = ipfsAdd(pathName);
@@ -82,8 +86,6 @@ const addVersion = (itemName, pathName, version) => {
     saveitemFile(pfile);
   }
 
-  // check if the item exists, if not then we make it.
-  // check that the version hasn't been published before
   // ipfs add pathname
   // grab the hash and store it in the items version object,
   // with the version as the key
