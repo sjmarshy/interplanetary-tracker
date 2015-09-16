@@ -12,6 +12,8 @@
   "dependencies": {
     "commander": "^2.8.1",
     "ipfs-api": "^2.3.2",
-    "shelljs": "^0.5.3"
+    "ramda": "^0.17.1",
+    "shelljs": "^0.5.3",
+    "superagent": "^1.4.0"
   }
 }

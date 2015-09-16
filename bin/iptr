@@ -22,8 +22,12 @@ var _require3 = require("path");
 
 var join = _require3.join;
 
+var R = require("ramda");
+var request = require("superagent");
+
 var storeDir = join(process.env.HOME, ".iptr");
 var itemList = join(storeDir, "items.json");
+var htmlFile = join(storeDir, "index.html");
 
 var getItemFile = function getItemFile() {
   return JSON.parse(readFileSync(itemList, "utf8"));
@@ -51,6 +55,10 @@ var versionExists = function versionExists(item, version) {
 
 var saveitemFile = function saveitemFile(pfile) {
   return writeFileSync(itemList, JSON.stringify(pfile));
+};
+
+var makeLink = function makeLink(hash) {
+  return "http://ipfs.io/ipfs/" + hash;
 };
 
 var ipfsAdd = function ipfsAdd(path) {
@@ -149,7 +157,7 @@ var open = function open(itemname, versionname) {
 
       console.log("opening " + hash);
 
-      exec("open http://ipfs.io/ipfs/" + hash);
+      exec("open " + makeLink(hash));
     } else {
 
       console.log("version doesn't exist");
@@ -158,6 +166,32 @@ var open = function open(itemname, versionname) {
 
     console.log("unable to find item " + itemname);
   }
+};
+
+var publish = function publish() {
+
+  var html = ["<!DOCTYPE html>", "<html>", "<head></head>", "<body>"];
+
+  var file = getItemFile();
+
+  file.forEach(function (i) {
+
+    Object.keys(i.versions).forEach(function (v) {
+
+      html.push("<a href='" + makeLink(i.versions[v]) + "'>" + i.name + " version: " + v + "</a>");
+    });
+  });
+
+  html.push("</body>", "</html>");
+
+  writeFileSync(htmlFile, html.join(""));
+
+  var hash = ipfsAdd(htmlFile);
+
+  console.log("publishing...this can take a bit");
+  request("http://localhost:5001/api/v0/name/publish?arg=" + hash).end(function (err, res) {
+    console.log("published to ipns/", res.body.Name);
+  });
 };
 
 program.version(p.version);
@@ -170,6 +204,6 @@ program.command("open <itemname> [versionname]").description("open the latest ve
 
 program.command("list [itemname]", "without [itemname], list your items, with" + " [itemname], list the published versions of that" + " item").action(function () {});
 
-program.command("publish", "generate a HTML page which lists all of your" + " stored items and publish it under your ipns").action(function () {});
+program.command("publish").description("generate a HTML page which lists all of your" + " stored items and publish it under your ipns").action(publish);
 
 program.parse(process.argv);

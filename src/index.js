@@ -9,9 +9,12 @@ const program = require("commander");
 const p = require("../package.json");
 const {mkdirSync, writeFileSync, readFileSync} = require("fs");
 const {join} = require("path");
+const R = require("ramda");
+const request = require("superagent");
 
 const storeDir = join(process.env.HOME, ".iptr");
 const itemList = join(storeDir, "items.json");
+const htmlFile = join(storeDir, "index.html");
 
 const getItemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
 
@@ -27,6 +30,8 @@ const versionExists = (item, version) => item.hasOwnProperty("versions") ?
   false;
 
 const saveitemFile = (pfile) => writeFileSync(itemList, JSON.stringify(pfile));
+
+const makeLink = (hash) => "http://ipfs.io/ipfs/" + hash;
 
 const ipfsAdd = (path) => {
 
@@ -127,7 +132,7 @@ const open = (itemname, versionname) => {
 
       console.log("opening " + hash);
 
-      exec("open http://ipfs.io/ipfs/"+hash);
+      exec("open " + makeLink(hash));
     } else {
 
       console.log("version doesn't exist");
@@ -137,6 +142,38 @@ const open = (itemname, versionname) => {
     console.log("unable to find item " + itemname);
   }
 };
+
+const publish = () => {
+
+  let html = [
+    "<!DOCTYPE html>",
+    "<html>",
+    "<head></head>",
+    "<body>"
+  ];
+
+  let file = getItemFile();
+
+  file.forEach((i) => {
+
+    Object.keys(i.versions).forEach((v) => {
+
+      html.push("<a href='" + makeLink(i.versions[v]) + "'>" + i.name + 
+	  " version: " + v + "</a>");
+    });
+  });
+
+  html.push("</body>", "</html>")
+
+  writeFileSync(htmlFile, html.join(""));
+
+  let hash = ipfsAdd(htmlFile);
+
+  console.log("publishing...this can take a bit");
+  request("http://localhost:5001/api/v0/name/publish?arg="+ hash).end((err, res) => {
+    console.log("published to ipns/", res.body.Name);
+  });
+}
 
 program.version(p.version);
 
@@ -160,9 +197,9 @@ program.command("list [itemname]",
 	.action(()=>{});
 
 
-program.command("publish",
-		"generate a HTML page which lists all of your" +
+program.command("publish")
+	.description("generate a HTML page which lists all of your" +
 		" stored items and publish it under your ipns")
-	.action(()=>{});
+	.action(publish);
 
 program.parse(process.argv);
