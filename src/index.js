@@ -4,7 +4,7 @@
 
 "use strict";
 
-let {exec} = require("shelljs");
+const {exec} = require("shelljs");
 const program = require("commander");
 const p = require("../package.json");
 const {mkdirSync, writeFileSync, readFileSync} = require("fs");
@@ -13,13 +13,13 @@ const {join} = require("path");
 const storeDir = join(process.env.HOME, ".iptr");
 const itemList = join(storeDir, "items.json");
 
-const getitemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
+const getItemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
 
 const itemFilter = (pfile, item) => pfile.filter((proj) => proj.name === item);
 
 const itemExists = (pfile, item) => itemFilter(pfile, item).length > 0;
 
-const getitem = (pfile, item) => itemExists(pfile, item) ?
+const getItem = (pfile, item) => itemExists(pfile, item) ?
 	itemFilter(pfile, item)[0] : false;
 
 const versionExists = (item, version) => item.hasOwnProperty("versions") ?
@@ -58,19 +58,22 @@ const init = () => {
 
 const additem = (itemName) => {
 
-	let pfile = getitemFile();
+	let pfile = getItemFile();
 
 	let exists = itemExists(pfile, itemName);
 
 	if (!exists) {
 
-		pfile.push({
-			name: itemName,
-			versions: {}
-		});
+	  let item = {
+	    name: itemName,
+	    versions: {}
+	  }
+	  pfile.push(item);
 
-		writeFileSync(itemList, JSON.stringify(pfile), "utf8");
-		console.log(itemName + " added to list of projcets");
+	  writeFileSync(itemList, JSON.stringify(pfile), "utf8");
+	  console.log(itemName + " added to list of projcets");
+
+	  return pfile;
 	} else {
 
 		console.log("item " + itemName + " already tracked");
@@ -79,13 +82,14 @@ const additem = (itemName) => {
 
 const addVersion = (itemName, pathName, version) => {
 
-  let pfile = getitemFile();
+  let pfile = getItemFile();
 
   if (!itemExists(pfile, itemName)) {
-    additem(itemName);
-  }
 
-  let item = getitem(pfile, itemName);
+    pfile = additem(itemName);
+  }
+  
+  let item = getItem(pfile, itemName);
 
   if (versionExists(item, version)) {
 
@@ -99,7 +103,7 @@ const addVersion = (itemName, pathName, version) => {
     console.log("creating version");
     let hash = ipfsAdd(pathName);
 
-    if (!item.hasOwnProperty("versions")) {
+    if (item && !item.hasOwnProperty("versions")) {
 
       item.versions = {};
     }
@@ -107,7 +111,30 @@ const addVersion = (itemName, pathName, version) => {
     console.log("object hash: " + hash);
     item.versions[version] = hash;
     saveitemFile(pfile);
+  }
+};
 
+const open = (itemname, versionname) => {
+
+  let file = getItemFile();
+
+  if (itemExists(file, itemname)) {
+    let i = getItem(file, itemname);
+
+    if (versionExists(i, versionname)) {
+
+      let hash = i.versions[versionname];
+
+      console.log("opening " + hash);
+
+      exec("open http://ipfs.io/ipfs/"+hash);
+    } else {
+
+      console.log("version doesn't exist");
+    }
+  } else {
+
+    console.log("unable to find item " + itemname);
   }
 };
 
@@ -121,10 +148,10 @@ program.command("add <itemname> <pathname> <version>")
 	.description("publish a new item version to ipfs")
 	.action(addVersion);
 
-program.command("open <itemname> [versionname]",
-			"open the latest version of a item, or a specific" +
-			"version, in your browser")
-	.action(()=>{});
+program.command("open <itemname> [versionname]")
+	.description("open the latest version of a item, or a specific" +
+	    "version, in your browser")
+	.action(open);
 
 program.command("list [itemname]",
 		"without [itemname], list your items, with" +

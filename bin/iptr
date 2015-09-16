@@ -25,111 +25,139 @@ var join = _require3.join;
 var storeDir = join(process.env.HOME, ".iptr");
 var itemList = join(storeDir, "items.json");
 
-var getitemFile = function getitemFile() {
-	return JSON.parse(readFileSync(itemList, "utf8"));
+var getItemFile = function getItemFile() {
+  return JSON.parse(readFileSync(itemList, "utf8"));
 };
 
 var itemFilter = function itemFilter(pfile, item) {
-	return pfile.filter(function (proj) {
-		return proj.name === item;
-	});
+  return pfile.filter(function (proj) {
+    return proj.name === item;
+  });
 };
 
 var itemExists = function itemExists(pfile, item) {
-	return itemFilter(pfile, item).length > 0;
+  return itemFilter(pfile, item).length > 0;
 };
 
-var getitem = function getitem(pfile, item) {
-	return itemExists(pfile, item) ? itemFilter(pfile, item)[0] : false;
+var getItem = function getItem(pfile, item) {
+  return itemExists(pfile, item) ? itemFilter(pfile, item)[0] : false;
 };
 
 var versionExists = function versionExists(item, version) {
-	return item.hasOwnProperty("versions") ? Object.keys(item.versions).filter(function (k) {
-		return k === version;
-	}).length > 0 : false;
+  return item.hasOwnProperty("versions") ? Object.keys(item.versions).filter(function (k) {
+    return k === version;
+  }).length > 0 : false;
 };
 
 var saveitemFile = function saveitemFile(pfile) {
-	return writeFileSync(itemList, JSON.stringify(pfile));
+  return writeFileSync(itemList, JSON.stringify(pfile));
 };
 
 var ipfsAdd = function ipfsAdd(path) {
 
-	console.log("adding " + path);
+  console.log("adding " + path);
 
-	var res = exec("ipfs add -r " + path);
+  var res = exec("ipfs add -r " + path);
 
-	if (res.code === 0) {
+  if (res.code === 0) {
 
-		var lines = res.output.split(/\r?\n/);
-		var lastLine = lines[lines.length - 2];
+    var lines = res.output.split(/\r?\n/);
+    var lastLine = lines[lines.length - 2];
 
-		return lastLine.split(" ")[1];
-	}
+    return lastLine.split(" ")[1];
+  }
 };
 
 var init = function init() {
 
-	try {
-		mkdirSync(storeDir);
-		writeFileSync(itemList, "[]");
-		return true;
-	} catch (e) {
+  try {
+    mkdirSync(storeDir);
+    writeFileSync(itemList, "[]");
+    return true;
+  } catch (e) {
 
-		process.stdout.write(e.message);
-		process.exit(1);
-	}
+    process.stdout.write(e.message);
+    process.exit(1);
+  }
 };
 
 var additem = function additem(itemName) {
 
-	var pfile = getitemFile();
+  var pfile = getItemFile();
 
-	var exists = itemExists(pfile, itemName);
+  var exists = itemExists(pfile, itemName);
 
-	if (!exists) {
+  if (!exists) {
 
-		pfile.push({
-			name: itemName,
-			versions: {}
-		});
+    var item = {
+      name: itemName,
+      versions: {}
+    };
+    pfile.push(item);
 
-		writeFileSync(itemList, JSON.stringify(pfile), "utf8");
-		console.log(itemName + " added to list of projcets");
-	} else {
+    writeFileSync(itemList, JSON.stringify(pfile), "utf8");
+    console.log(itemName + " added to list of projcets");
 
-		console.log("item " + itemName + " already tracked");
-	}
+    return pfile;
+  } else {
+
+    console.log("item " + itemName + " already tracked");
+  }
 };
 
 var addVersion = function addVersion(itemName, pathName, version) {
 
-	var pfile = getitemFile();
+  var pfile = getItemFile();
 
-	if (!itemExists(pfile, itemName)) {
-		additem(itemName);
-	}
+  if (!itemExists(pfile, itemName)) {
 
-	var item = getitem(pfile, itemName);
+    pfile = additem(itemName);
+  }
 
-	if (versionExists(item, version)) {
+  var item = getItem(pfile, itemName);
 
-		console.log("version " + version + "is already published at " + item.versions[version]);
-		process.exit(1);
-	} else {
+  if (versionExists(item, version)) {
 
-		console.log("creating version");
-		var hash = ipfsAdd(pathName);
+    console.log("version " + version + "is already published at " + item.versions[version]);
+    process.exit(1);
+  } else {
 
-		if (!item.hasOwnProperty("versions")) {
+    console.log("creating version");
+    var hash = ipfsAdd(pathName);
 
-			item.versions = {};
-		}
+    if (item && !item.hasOwnProperty("versions")) {
 
-		console.log("object hash: " + hash);
-		item.versions[version] = hash;
-		saveitemFile(pfile);
-	}
+      item.versions = {};
+    }
+
+    console.log("object hash: " + hash);
+    item.versions[version] = hash;
+    saveitemFile(pfile);
+  }
+};
+
+var open = function open(itemname, versionname) {
+
+  var file = getItemFile();
+
+  if (itemExists(file, itemname)) {
+    var i = getItem(file, itemname);
+
+    if (versionExists(i, versionname)) {
+
+      var hash = i.versions[versionname];
+
+      console.log("opening " + hash);
+
+      exec("open http://ipfs.io/ipfs/" + hash);
+    } else {
+
+      console.log("version doesn't exist");
+    }
+  } else {
+
+    console.log("unable to find item " + itemname);
+  }
 };
 
 program.version(p.version);
@@ -138,7 +166,7 @@ program.command("init").description("initialise your item storage").action(init)
 
 program.command("add <itemname> <pathname> <version>").description("publish a new item version to ipfs").action(addVersion);
 
-program.command("open <itemname> [versionname]", "open the latest version of a item, or a specific" + "version, in your browser").action(function () {});
+program.command("open <itemname> [versionname]").description("open the latest version of a item, or a specific" + "version, in your browser").action(open);
 
 program.command("list [itemname]", "without [itemname], list your items, with" + " [itemname], list the published versions of that" + " item").action(function () {});
 
