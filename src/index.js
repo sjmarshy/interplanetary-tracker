@@ -14,7 +14,6 @@ const request = require("superagent");
 
 const storeDir = join(process.env.HOME, ".iptr");
 const itemList = join(storeDir, "items.json");
-const htmlFile = join(storeDir, "index.html");
 
 const getItemFile = () => JSON.parse(readFileSync(itemList, "utf8"));
 
@@ -145,31 +144,7 @@ const open = (itemname, versionname) => {
 
 const publish = () => {
 
-  let html = [
-    "<!DOCTYPE html>",
-    "<html>",
-    "<head></head>",
-    "<body>"
-  ];
-
-  let file = getItemFile();
-
-  file.forEach((i) => {
-
-    Object.keys(i.versions).forEach((v) => {
-
-      html.push("<a href='" + makeLink(i.versions[v]) + "'>" + i.name + 
-	  " version: " + v + "</a>");
-    });
-  });
-
-  html.push("</body>", "</html>")
-
-  writeFileSync(htmlFile, html.join(""));
-
-  let hash = ipfsAdd(htmlFile);
-
-  console.log("publishing...this can take a bit");
+  let hash = ipfsAdd(storeDir);
   request("http://localhost:5001/api/v0/name/publish?arg="+ hash).end((err, res) => {
     console.log("published to ipns/", res.body.Name);
   });
