@@ -1,11 +1,11 @@
 {
-  "name": "ipfs-projects",
+  "name": "interplanetary-tracker",
   "version": "1.0.0",
   "description": "Keep a registry of projects stored in [ipfs](ipfs.io) on your local machine, and publish a list of your projects and their history to ipns.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build":"babel -o bin/ipfsprojects src/index.js"
+    "build":"babel -o bin/iptr src/index.js"
   },
   "author": "Sam Marshall",
   "license": "MIT",

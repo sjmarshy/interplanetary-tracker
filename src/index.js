@@ -1,29 +1,32 @@
 #!/usr/bin/env node
 
+/* eslint no-process-exit:0 */
+
+"use strict";
+
 const program = require("commander");
 const p = require("../package.json");
 const {writeFileSync, readFileSync} = require("fs");
 const {join} = require("path");
 
-const projectPath = join(process.env["HOME"], ".ipfsprojetcs");
+const itemPath = join(process.env.HOME, ".ipfsprojetcs");
 
-const getProjectFile = () => JSON.parse(readFileSync(projectPath, "utf8"));
+const getitemFile = () => JSON.parse(readFileSync(itemPath, "utf8"));
 
-const projectFilter = (pfile, project) => pfile.filter((p) => { p.name === project });
+const itemFilter = (pfile, item) => pfile.filter((proj) => proj.name === item);
 
-const projectExists = (pfile, project) => projectFilter(pfile, project) > 0;
+const itemExists = (pfile, item) => itemFilter(pfile, item) > 0;
 
-const getProject = (pfile, project) => projectExists(pfile, project) ?
-	projectFilter(pfile, project)[0] : false;
+const getitem = (pfile, item) => itemExists(pfile, item) ?
+	itemFilter(pfile, item)[0] : false;
 
-const versionExists = (project, version) => {
-	// TODO
-}
+const versionExists = (item, version) => item.versions
+  .filter((k) => k === version).length > 0;
 
 const init = () => {
 
 	try {
-		writeFileSync(projectPath, "[]");
+		writeFileSync(itemPath, "[]");
 		return true;
 	} catch (e) {
 
@@ -32,100 +35,85 @@ const init = () => {
 	}
 };
 
-const addProject = (projectName) => {
+const additem = (itemName) => {
 
-	let pfile = getProjectFile();
+	let pfile = getitemFile();
 
-	let exists = pfile.filter((p) => {
-		return p.name === projectName;
-	});
+	let exists = itemExists(pfile, itemName);
 
-	if (exists.length < 1) {
+	if (exists) {
 
 		pfile.push({
-			name: projectName,
+			name: itemName,
 			versions: {}
 		});
 
-		writeFileSync(projectPath, JSON.stringify(pfile), "utf8");
-		console.log(projectName + " added to list of projcets");
+		writeFileSync(itemPath, JSON.stringify(pfile), "utf8");
+		console.log(itemName + " added to list of projcets");
 	} else {
 
-		console.log("project " + projectName + " already tracked");
+		console.log("item " + itemName + " already tracked");
 	}
 };
 
-const addVersion = (projectName, pathName, version) => {
+const addVersion = (itemName, pathName, version) => {
 
-	let pfile = getProjectFile();
+  let pfile = getitemFile();
 
-	if (projectExists(pfile, projectName)) {
+  if (!itemExists(pfile, itemName)) {
+    additem(itemName);
+  }
 
-		let project = getProject(pfile, projectName);
+  let item = getitem(pfile, itemName);
 
-		// TODO
-		if (versionExists(project, version)) {
-			console.log("version " + version +
-					"is already published at " +
-					project[version]);
-			process.exit(1);
-		} else {
+  if (versionExists(item, version)) {
+    console.log("version " + version +
+        "is already published at " +
+        item[version]);
+    process.exit(1);
+  } else {
 
-			// TODO
-			let hash = ipfsAdd(pathName);
+    let hash = ipfsAdd(pathName);
 
-			project[version] = hash;
+    item[version] = hash;
 
-			console.log(hash);
+    console.log(hash);
 
-			// TODO
-			saveProjectFile(pfile);
-		}
-	} else {
+    saveitemFile(pfile);
+  }
 
-		console.log(
-			projectName +
-			" does not exist, try running `ipfsprojetcs project " +
-			projectName);
-	
-		process.exit(1);
-	}
-
-	// check that the version hasn't been published before
-	// ipfs add pathname
-	// grab the hash and store it in the projects version object,
-	// with the version as the key
-}
+  // check if the item exists, if not then we make it.
+  // check that the version hasn't been published before
+  // ipfs add pathname
+  // grab the hash and store it in the items version object,
+  // with the version as the key
+};
 
 program.version(p.version);
 
 program.command("init")
-	.description("initialise your project storage")
+	.description("initialise your item storage")
 	.action(init);
 
-program.command("project <projectname>")
-	.description("add a new project to track")
-	.action(addProject);
-
-program.command("add <projectname> <pathname> <version>")
-	.description("publish a new project version to ipfs")
+program.command("add <itemname> <pathname> <version>")
+	.description("publish a new item version to ipfs")
 	.action(addVersion);
 
-program.command("open <projectname> [versionname]",
-			"open the latest version of a project, or a specific" +
+program.command("open <itemname> [versionname]",
+			"open the latest version of a item, or a specific" +
 			"version, in your browser")
 	.action(()=>{});
 
-program.command("list [projectname]",
-		"without [projectname], list your projects, with" +
-		" [projectname], list the published versions of that" +
-		" project")
+program.command("list [itemname]",
+		"without [itemname], list your items, with" +
+		" [itemname], list the published versions of that" +
+		" item")
 	.action(()=>{});
 
 
-program.command("publish", 
+program.command("publish",
 		"generate a HTML page which lists all of your" +
-		" stored projects and publish it under your ipns")
-	.action(()=>{})
+		" stored items and publish it under your ipns")
+	.action(()=>{});
 
 program.parse(process.argv);
