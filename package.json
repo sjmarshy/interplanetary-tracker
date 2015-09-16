@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel -o bin/iptr src/index.js"
+    "build": "babel -o bin/iptr src/index.js",
+    "frontend": "watchify -t babelify -o template/app.js -- frontend/index.js"
   },
   "bin": {
     "iptr": "./bin/iptr"
@@ -18,5 +19,9 @@
     "ramda": "^0.17.1",
     "shelljs": "^0.5.3",
     "superagent": "^1.4.0"
+  },
+  "devDependencies": {
+    "babelify": "^6.3.0",
+    "watchify": "^3.4.0"
   }
 }
