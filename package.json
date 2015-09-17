@@ -17,11 +17,13 @@
     "commander": "^2.8.1",
     "ipfs-api": "^2.3.2",
     "ramda": "^0.17.1",
+    "react": "^0.13.3",
     "shelljs": "^0.5.3",
     "superagent": "^1.4.0"
   },
   "devDependencies": {
     "babelify": "^6.3.0",
+    "eslint-plugin-react": "^3.4.1",
     "watchify": "^3.4.0"
   }
 }
