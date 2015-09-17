@@ -23,11 +23,11 @@ var _require3 = require("path");
 
 var join = _require3.join;
 
-var R = require("ramda");
 var request = require("superagent");
 
 var storeDir = join(process.env.HOME, ".iptr");
 var itemList = join(storeDir, "items.json");
+var publishDir = join(storeDir, "publish");
 
 var getItemFile = function getItemFile() {
   return JSON.parse(readFileSync(itemList, "utf8"));
@@ -79,9 +79,15 @@ var ipfsAdd = function ipfsAdd(path) {
 var init = function init() {
 
   try {
+
     mkdirSync(storeDir);
+    mkdirSync(publishDir);
+
     writeFileSync(itemList, "[]");
-    cp("-r", join(__dirname, "..", "template"), storeDir);
+
+    cp(join(__dirname, "..", "template", "app.js"), publishDir);
+    cp(join(__dirname, "..", "template", "index.html"), publishDir);
+
     return true;
   } catch (e) {
 
@@ -99,9 +105,12 @@ var additem = function additem(itemName) {
   if (!exists) {
 
     var item = {
+
       name: itemName,
+
       versions: {}
     };
+
     pfile.push(item);
 
     writeFileSync(itemList, JSON.stringify(pfile), "utf8");
@@ -175,10 +184,16 @@ var publish = function publish() {
 
   var str = "window.items = " + JSON.stringify(items);
 
-  writeFileSync(join(storeDir, "items.js"), str);
+  writeFileSync(join(publishDir, "items.js"), str);
 
-  var hash = ipfsAdd(storeDir);
+  var hash = ipfsAdd(publishDir);
   request("http://localhost:5001/api/v0/name/publish?arg=" + hash).end(function (err, res) {
+
+    if (err) {
+
+      console.log(err);
+      process.exit(1);
+    }
     console.log("published to ipns/", res.body.Name);
   });
 };
