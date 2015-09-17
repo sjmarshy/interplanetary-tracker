@@ -8,6 +8,7 @@
 var _require = require("shelljs");
 
 var exec = _require.exec;
+var cp = _require.cp;
 
 var program = require("commander");
 var p = require("../package.json");
@@ -27,7 +28,6 @@ var request = require("superagent");
 
 var storeDir = join(process.env.HOME, ".iptr");
 var itemList = join(storeDir, "items.json");
-var htmlFile = join(storeDir, "index.html");
 
 var getItemFile = function getItemFile() {
   return JSON.parse(readFileSync(itemList, "utf8"));
@@ -81,6 +81,7 @@ var init = function init() {
   try {
     mkdirSync(storeDir);
     writeFileSync(itemList, "[]");
+    cp("-r", join(__dirname, "..", "template"), storeDir);
     return true;
   } catch (e) {
 
@@ -170,25 +171,13 @@ var open = function open(itemname, versionname) {
 
 var publish = function publish() {
 
-  var html = ["<!DOCTYPE html>", "<html>", "<head></head>", "<body>"];
+  var items = getItemFile();
 
-  var file = getItemFile();
+  var str = "window.items = " + JSON.stringify(items);
 
-  file.forEach(function (i) {
+  writeFileSync(join(storeDir, "items.js"), str);
 
-    Object.keys(i.versions).forEach(function (v) {
-
-      html.push("<a href='" + makeLink(i.versions[v]) + "'>" + i.name + " version: " + v + "</a>");
-    });
-  });
-
-  html.push("</body>", "</html>");
-
-  writeFileSync(htmlFile, html.join(""));
-
-  var hash = ipfsAdd(htmlFile);
-
-  console.log("publishing...this can take a bit");
+  var hash = ipfsAdd(storeDir);
   request("http://localhost:5001/api/v0/name/publish?arg=" + hash).end(function (err, res) {
     console.log("published to ipns/", res.body.Name);
   });

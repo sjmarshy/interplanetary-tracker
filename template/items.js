@@ -1,1 +1,0 @@
-window.items = [{"name":"interplanetary-tracker","versions":{"v0.1.0":"QmSHqLqTvYBVo622vmVRXzD1iwk45uv5aEJ7M5m1MGNGD6"}},{"name":"book-tracker","versions":{"v0.1.0":"QmYbKYhPQ2PLW5u49mpSceMDkazWqDJm6SDGdfyJSrzc8H"}}]
