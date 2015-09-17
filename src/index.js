@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {exec} = require("shelljs");
+const {exec, cp} = require("shelljs");
 const program = require("commander");
 const p = require("../package.json");
 const {mkdirSync, writeFileSync, readFileSync} = require("fs");
@@ -49,15 +49,16 @@ const ipfsAdd = (path) => {
 
 const init = () => {
 
-	try {
+  try {
     mkdirSync(storeDir);
-		writeFileSync(itemList, "[]");
-		return true;
-	} catch (e) {
+    writeFileSync(itemList, "[]");
+    cp("-r", join(__dirname, "..", "template"), storeDir);
+    return true;
+  } catch (e) {
 
-		process.stdout.write(e.message);
-		process.exit(1);
-	}
+    process.stdout.write(e.message);
+    process.exit(1);
+  }
 };
 
 const additem = (itemName) => {
@@ -143,6 +144,12 @@ const open = (itemname, versionname) => {
 };
 
 const publish = () => {
+
+  let items = getItemFile();
+
+  let str = "window.items = " + JSON.stringify(items);
+
+  writeFileSync(join(storeDir, "items.js"), str);
 
   let hash = ipfsAdd(storeDir);
   request("http://localhost:5001/api/v0/name/publish?arg="+ hash).end((err, res) => {
